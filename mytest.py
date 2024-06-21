@@ -10,23 +10,13 @@ from pathlib import Path
 class AssertRewriter(ast.NodeTransformer):
 
     def visit_Assert(self, node):
-        if isinstance(node.test, ast.Compare):
-            left = node.test.left
-            right = node.test.comparators[0]
-            return ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id="mytest_asserts", ctx=ast.Load()),
-                    attr="assert_eq",
-                    ctx=ast.Load(),
-                ),
-                args=[
-                    left,
-                    right,
-                    ast.unparse(left),
-                    ast.unparse(right)
-                ],
-                kwargs={},
-            )
+        return node
+
+
+def rewrite_asserts(source_code: str):
+    tree = ast.parse(source_code)
+    AssertRewriter().visit(tree)
+    return ast.unparse(tree)
 
 
 def import_module(source_path: Path):
@@ -38,8 +28,7 @@ def import_module(source_path: Path):
     with open(source_path) as f:
         source_code = f.read()
 
-    tree = ast.parse(source_code)
-    source_code = ast.unparse(tree)
+    source_code = rewrite_asserts(source_code)
 
     mod = types.ModuleType(name)
     mod.__file__ = source_path
